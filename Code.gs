@@ -237,3 +237,9 @@ function getDriveFolder() {
   var f = DriveApp.getFoldersByName(FOLDER_NAME);
   return f.hasNext() ? f.next() : DriveApp.createFolder(FOLDER_NAME);
 }
+
+// Run this once to authorize Gmail scope
+function authorizeGmail() {
+  GmailApp.getInboxThreads(0, 1);
+  Logger.log('Gmail authorized for: ' + Session.getActiveUser().getEmail());
+}
