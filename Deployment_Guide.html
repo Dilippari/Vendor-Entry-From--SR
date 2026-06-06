@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Deployment Guide — Shiprocket Invoice Form</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#1e293b;line-height:1.6}
+  .page{max-width:860px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:26px;font-weight:800;color:#0f1c3f;margin-bottom:6px}
+  .subtitle{color:#64748b;font-size:14px;margin-bottom:36px}
+  .step{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;margin-bottom:24px;overflow:hidden}
+  .step-header{display:flex;align-items:center;gap:14px;padding:18px 22px;background:#f8faff;border-bottom:1px solid #e2e8f0}
+  .step-num{width:34px;height:34px;border-radius:50%;background:#4f46e5;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .step-title{font-weight:700;font-size:16px;color:#1e293b}
+  .step-body{padding:20px 22px}
+  .step-body p{font-size:14px;color:#374151;margin-bottom:10px}
+  .step-body ul{margin-left:20px;font-size:14px;color:#374151;margin-bottom:10px}
+  .step-body li{margin-bottom:6px}
+  .step-body ol{margin-left:20px;font-size:14px;color:#374151}
+  .step-body ol li{margin-bottom:8px}
+  code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:2px 7px;font-family:'Consolas','Courier New',monospace;font-size:13px;color:#7c3aed}
+  .code-block{background:#0f172a;color:#e2e8f0;border-radius:9px;padding:16px 18px;font-family:'Consolas','Courier New',monospace;font-size:13px;margin:12px 0;overflow-x:auto;line-height:1.7}
+  .code-block .cm{color:#64748b}
+  .code-block .kw{color:#93c5fd}
+  .code-block .str{color:#86efac}
+  .badge{display:inline-block;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:8px}
+  .badge-blue{background:#dbeafe;color:#1d4ed8}
+  .badge-green{background:#dcfce7;color:#15803d}
+  .badge-orange{background:#fef3c7;color:#b45309}
+  .tip{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;font-size:13px;color:#0369a1;margin:12px 0}
+  .warn{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;font-size:13px;color:#92400e;margin:12px 0}
+  .success{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;font-size:13px;color:#15803d;margin:12px 0}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+  th{background:#f1f5f9;padding:9px 12px;text-align:left;font-weight:700;color:#475569;border:1px solid #e2e8f0}
+  td{padding:9px 12px;border:1px solid #e2e8f0;color:#374151;vertical-align:top}
+  tr:nth-child(even) td{background:#fafafa}
+  .divider{border:none;border-top:2px solid #e2e8f0;margin:32px 0}
+  h3{font-size:14px;font-weight:700;color:#374151;margin:16px 0 8px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>🚀 Deployment Guide</h1>
+  <p class="subtitle">Shiprocket Invoice Entry Form — Google Sheets + Drive Integration</p>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Create a Google Sheet</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>Go to <strong>sheets.google.com</strong> and create a new blank spreadsheet.</li>
+        <li>Name it <strong>"Shiprocket Invoice Tracker"</strong> (or any name you prefer).</li>
+        <li>Keep this tab open — you'll need the URL later.</li>
+      </ol>
+      <div class="tip">💡 Use a Google account that has access to the Google Drive folder where invoice PDFs should be stored.</div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Open Apps Script &amp; Paste the Backend Code</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>In your Google Sheet, click <strong>Extensions → Apps Script</strong>.</li>
+        <li>Delete all existing code in the editor (Ctrl+A, Delete).</li>
+        <li>Open the file <code>Code.gs</code> provided with this guide.</li>
+        <li>Copy the entire contents and paste it into the Apps Script editor.</li>
+        <li>Click <strong>💾 Save</strong> (Ctrl+S).</li>
+      </ol>
+      <div class="tip">💡 The script file is named <strong>Code.gs</strong> — make sure you copy the full file, from the first comment line to the last closing brace.</div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Run Setup Function Once</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>In the Apps Script editor, select the function <code>setupSheetAndFolder</code> from the dropdown (top center).</li>
+        <li>Click the <strong>▶ Run</strong> button.</li>
+        <li>When prompted, click <strong>"Review Permissions"</strong> → choose your Google account → click <strong>"Allow"</strong>.</li>
+        <li>Wait for it to complete — check the <strong>Execution log</strong> at the bottom for a success message.</li>
+      </ol>
+      <div class="success">✅ This creates: the "Invoice Submissions" sheet tab with all column headers, and a "Shiprocket Invoice Attachments" folder in your Google Drive.</div>
+      <div class="warn">⚠️ Only run this once. Running it again on an already-set-up sheet is safe but won't duplicate headers.</div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Deploy as Web App</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>In the Apps Script editor, click <strong>Deploy → New deployment</strong>.</li>
+        <li>Click the gear icon ⚙️ next to "Select type" and choose <strong>Web app</strong>.</li>
+        <li>Set the fields as follows:</li>
+      </ol>
+      <table>
+        <tr><th>Setting</th><th>Value</th></tr>
+        <tr><td>Description</td><td>Shiprocket Invoice Form v2</td></tr>
+        <tr><td>Execute as</td><td><strong>Me</strong> (your Google account)</td></tr>
+        <tr><td>Who has access</td><td><strong>Anyone</strong></td></tr>
+      </table>
+      <ol start="4">
+        <li>Click <strong>Deploy</strong>.</li>
+        <li>Copy the <strong>Web app URL</strong> — it looks like:<br/>
+          <div class="code-block">https://script.google.com/macros/s/AKfycb.../exec</div>
+        </li>
+      </ol>
+      <div class="warn">⚠️ Keep this URL private — anyone with it can submit to your sheet. Do not share it publicly.</div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Paste Web App URL into the Form</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>Open <code>Shiprocket_Invoice_Entry_Form_v31.html</code> in a text editor.</li>
+        <li>Search for the line (around line 2216):</li>
+      </ol>
+      <div class="code-block"><span class="kw">var</span> SCRIPT_URL = <span class="str">'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'</span>;</div>
+      <ol start="3">
+        <li>Replace <code>YOUR_GOOGLE_APPS_SCRIPT_URL_HERE</code> with your copied Web App URL:</li>
+      </ol>
+      <div class="code-block"><span class="kw">var</span> SCRIPT_URL = <span class="str">'https://script.google.com/macros/s/AKfycb.../exec'</span>;</div>
+      <ol start="4">
+        <li>Save the file.</li>
+      </ol>
+      <div class="tip">💡 This is the only change needed in the HTML file. Everything else is already configured.</div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">Host the Form on the Web</div>
+        <span class="badge badge-blue">Choose one option</span>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>The form is a single self-contained HTML file. You can host it using any of these free options:</p>
+
+      <h3>Option A — GitHub Pages (Recommended, Free)</h3>
+      <ol>
+        <li>Go to <strong>github.com</strong> and create a free account (or log in).</li>
+        <li>Create a new repository, e.g. <code>shiprocket-invoice-form</code>. Set it to <strong>Public</strong>.</li>
+        <li>Upload the file — rename it to <code>index.html</code> before uploading.</li>
+        <li>Go to <strong>Settings → Pages</strong> → under Source, select <strong>main branch</strong> → click Save.</li>
+        <li>Your form will be live at: <code>https://yourusername.github.io/shiprocket-invoice-form/</code></li>
+      </ol>
+      <div class="success">✅ GitHub Pages is free, reliable, and requires no server maintenance.</div>
+
+      <h3>Option B — Netlify Drop (Instant, Free)</h3>
+      <ol>
+        <li>Go to <strong>netlify.com/drop</strong>.</li>
+        <li>Drag and drop the <code>index.html</code> file onto the page.</li>
+        <li>Your form is instantly live at a random URL like <code>https://xyz-abc-123.netlify.app</code>.</li>
+        <li>You can set a custom name in the Netlify dashboard.</li>
+      </ol>
+
+      <h3>Option C — Google Drive (No hosting needed)</h3>
+      <ol>
+        <li>Upload the HTML file to Google Drive.</li>
+        <li>Right-click → <strong>Get link</strong> → change to <strong>Anyone with the link</strong>.</li>
+        <li>Share the link directly with your team.</li>
+      </ol>
+      <div class="warn">⚠️ Google Drive preview mode may not run JavaScript. For Drive, users should download the file and open it in Chrome/Edge.</div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div>
+        <div class="step-title">Test End-to-End</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>Open your hosted form URL in Chrome or Edge.</li>
+        <li>Attach a sample invoice PDF — the AI should auto-read and fill fields.</li>
+        <li>Complete any missing fields manually.</li>
+        <li>Click <strong>Review &amp; Submit</strong> → verify the review screen → click <strong>Submit Invoice Entry</strong>.</li>
+        <li>Open your Google Sheet — a new row should appear within seconds.</li>
+        <li>Open Google Drive → <strong>Shiprocket Invoice Attachments</strong> folder → confirm the PDF was uploaded.</li>
+      </ol>
+      <div class="success">✅ If the row appears in the sheet AND the file appears in Drive, your deployment is complete!</div>
+      <div class="tip">💡 If submission fails, check: (1) the Web App URL is correctly pasted, (2) the deployment is set to "Anyone" access, (3) the Apps Script has been re-deployed after any code changes.</div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      <div>
+        <div class="step-title">Re-deploy After Any Script Changes</div>
+        <span class="badge badge-orange">Important</span>
+      </div>
+    </div>
+    <div class="step-body">
+      <p>If you ever edit <code>Code.gs</code>, you <strong>must re-deploy</strong> — saving alone does not update the live Web App.</p>
+      <ol>
+        <li>In Apps Script, click <strong>Deploy → Manage deployments</strong>.</li>
+        <li>Click the pencil ✏️ icon on your existing deployment.</li>
+        <li>Change version to <strong>"New version"</strong>.</li>
+        <li>Click <strong>Deploy</strong>. The URL stays the same — no changes needed in the HTML.</li>
+      </ol>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- Sheet Columns Reference -->
+  <h3 style="font-size:16px;font-weight:800;color:#0f1c3f;margin-bottom:16px">📊 Google Sheet — Column Reference</h3>
+  <table>
+    <tr><th>#</th><th>Column Name</th><th>Source</th></tr>
+    <tr><td>1</td><td>Timestamp</td><td>Auto (server time)</td></tr>
+    <tr><td>2</td><td>Submission ID</td><td>Auto-generated (INV-YYYYMMDDHHMMSS-NNN)</td></tr>
+    <tr><td>3</td><td>Vendor Name</td><td>Vendor dropdown</td></tr>
+    <tr><td>4</td><td>Vendor Code</td><td>Vendor master</td></tr>
+    <tr><td>5</td><td>Vendor PAN</td><td>Vendor master / manual</td></tr>
+    <tr><td>6</td><td>Vendor State</td><td>Auto from GSTIN</td></tr>
+    <tr><td>7</td><td>Vendor GSTIN</td><td>Form field</td></tr>
+    <tr><td>8</td><td>Invoice Number</td><td>Form field</td></tr>
+    <tr><td>9</td><td>Invoice Date</td><td>Form field</td></tr>
+    <tr><td>10</td><td>IRN Number</td><td>Form field</td></tr>
+    <tr><td>11</td><td>RCM Applicable</td><td>Form field (Y/N)</td></tr>
+    <tr><td>12</td><td>Product / Service (GL Code)</td><td>Dropdown (GL code)</td></tr>
+    <tr><td>13</td><td>Product / Service (Label)</td><td>Dropdown (full label)</td></tr>
+    <tr><td>14</td><td>HSN / SAC Code</td><td>Form field</td></tr>
+    <tr><td>15</td><td>Legal Name</td><td>Fixed: SHIPROCKET LIMITED</td></tr>
+    <tr><td>16</td><td>Customer GSTIN</td><td>Dropdown</td></tr>
+    <tr><td>17</td><td>Place of Supply</td><td>Dropdown</td></tr>
+    <tr><td>18</td><td>Customer State Code</td><td>Dropdown</td></tr>
+    <tr><td>19</td><td>Business Unit</td><td>Dropdown (33 units)</td></tr>
+    <tr><td>20</td><td>Department</td><td>Dropdown (26 depts)</td></tr>
+    <tr><td>21</td><td>Location</td><td>Dropdown (67 locations)</td></tr>
+    <tr><td>22</td><td>Taxable Value (₹)</td><td>Calculated</td></tr>
+    <tr><td>23</td><td>Others (₹)</td><td>Form field</td></tr>
+    <tr><td>24</td><td>Tax Type</td><td>IGST / CGST+SGST</td></tr>
+    <tr><td>25</td><td>Tax Amount (₹)</td><td>Calculated</td></tr>
+    <tr><td>26</td><td>TDS Section</td><td>Dropdown (code)</td></tr>
+    <tr><td>27</td><td>TDS Section Label</td><td>Dropdown (full label)</td></tr>
+    <tr><td>28</td><td>TDS Rate (%)</td><td>Dropdown</td></tr>
+    <tr><td>29</td><td>TDS Value (₹)</td><td>Calculated / manual</td></tr>
+    <tr><td>30</td><td>Grand Total (₹)</td><td>Calculated</td></tr>
+    <tr><td>31</td><td>Amount in Words</td><td>Auto-generated</td></tr>
+    <tr><td>32</td><td>Attachments (Drive Links)</td><td>Google Drive URLs</td></tr>
+    <tr><td>33</td><td>GST Validation Status</td><td>PASS ✅ / REVIEW ⚠️</td></tr>
+  </table>
+
+</div>
+</body>
+</html>
