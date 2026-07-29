@@ -520,9 +520,11 @@
           <div id="ai-validate-panel" style="display:none;margin-top:16px;border:1.5px solid #c7d2fe;border-radius:12px;overflow:hidden">
             <div style="background:#eef2ff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <span style="font-size:15px">🤖</span>
-              <span style="font-weight:700;color:#3730a3;font-size:13px;flex:1">AI Document Extraction</span>
-              <input type="password" id="anthropic-api-key" placeholder="Paste Anthropic API key (sk-ant-...)"
-                style="flex:2;min-width:200px;padding:5px 10px;border:1.5px solid #c7d2fe;border-radius:7px;font-size:12px;outline:none"/>
+              <span style="font-weight:700;color:#3730a3;font-size:13px;flex:1">AI Document Extraction (Azure OCR)</span>
+              <input type="text" id="azure-ocr-endpoint" placeholder="Azure Endpoint (https://xxxx.cognitiveservices.azure.com/)"
+                style="flex:3;min-width:240px;padding:5px 10px;border:1.5px solid #c7d2fe;border-radius:7px;font-size:12px;outline:none"/>
+              <input type="password" id="azure-ocr-key" placeholder="Azure API Key"
+                style="flex:2;min-width:160px;padding:5px 10px;border:1.5px solid #c7d2fe;border-radius:7px;font-size:12px;outline:none"/>
               <span id="ai-validate-status" style="font-size:12px;color:#6366f1;font-weight:500"></span>
               <button type="button" id="btn-ai-validate" onclick="autoExtractAndFill()"
                 style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer">
@@ -2052,80 +2054,96 @@ async function autoExtractAndFill() {
       r.readAsDataURL(file);
     });
 
-    const mediaTypeMap = { pdf:'application/pdf', jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png' };
-    const mediaType = mediaTypeMap[ext] || 'application/pdf';
 
-    const prompt = `You are an expert GST invoice data extraction engine. Extract ALL possible fields from this Indian GST tax invoice document.
-
-Return ONLY a valid JSON object with these exact keys (use null if not found, never guess):
-{
-  "invoiceNumber": "exact invoice/bill number",
-  "invoiceDate": "date in YYYY-MM-DD format if possible, else as-is",
-  "irnNumber": "IRN number if present (64-char hash)",
-  "vendorGSTIN": "supplier/vendor GSTIN (15 chars)",
-  "vendorPAN": "vendor PAN (10 chars, derived from GSTIN chars 3-12 if not explicitly shown)",
-  "vendorName": "supplier/vendor legal name",
-  "vendorState": "state code and name from vendor GSTIN prefix e.g. '06 - Haryana'",
-  "customerGSTIN": "buyer/customer GSTIN",
-  "customerName": "buyer/customer legal name",
-  "placeOfSupply": "place of supply state code and name",
-  "hsnCode": "HSN or SAC code",
-  "taxableValue": "taxable/assessable amount as number string e.g. '10000.00'",
-  "igstRate": "IGST rate percentage as number e.g. '18' or null",
-  "igstAmount": "IGST amount as number string or null",
-  "cgstRate": "CGST rate as number or null",
-  "cgstAmount": "CGST amount or null",
-  "sgstRate": "SGST rate as number or null",
-  "sgstAmount": "SGST amount or null",
-  "grandTotal": "total invoice amount including tax",
-  "rcm": "Y or N - is reverse charge applicable",
-  "taxType": "IGST or CGST_SGST",
-  "serviceDescription": "nature of service or product description",
-  "amountInWords": "amount in words if printed on invoice"
-}
-
-No markdown, no explanation. Pure JSON only.`;
-
-    const contentPayload = ext === 'pdf'
-      ? [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data:base64 } }, { type:'text', text:prompt }]
-      : [{ type:'image',    source:{ type:'base64', media_type:mediaType, data:base64 } },           { type:'text', text:prompt }];
-
-    const apiKey = (document.getElementById('anthropic-api-key').value || '').trim();
-    if (!apiKey) {
+    const azureEndpoint = (document.getElementById('azure-ocr-endpoint').value || '').trim().replace(/\/+$/, '');
+    const azureKey      = (document.getElementById('azure-ocr-key').value || '').trim();
+    if (!azureEndpoint || !azureKey) {
       clearInterval(progressTimer);
       btn.disabled = false;
       btn.textContent = '🔄 Extract';
       statusEl.textContent = '';
-      resultsEl.innerHTML = '<div style="padding:16px;color:#b91c1c;font-size:13px;font-weight:600">⚠️ Please paste your Anthropic API key above first.</div>';
+      resultsEl.innerHTML = '<div style="padding:16px;color:#b91c1c;font-size:13px;font-weight:600">⚠️ Please enter your Azure Endpoint and API Key above.</div>';
       return;
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Step 1: Submit document to Azure Document Intelligence prebuilt-invoice
+    const analyzeUrl = azureEndpoint + '/formrecognizer/documentModels/prebuilt-invoice:analyze?api-version=2023-07-31';
+    const submitResp = await fetch(analyzeUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Ocp-Apim-Subscription-Key': azureKey
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20251022',
-        max_tokens: 1000,
-        messages: [{ role:'user', content:contentPayload }]
-      })
+      body: JSON.stringify({ base64Source: base64 })
     });
+    if (!submitResp.ok) {
+      const errText = await submitResp.text();
+      throw new Error('Azure OCR submit failed (' + submitResp.status + '): ' + errText.substring(0, 300));
+    }
+
+    // Step 2: Poll Operation-Location until succeeded
+    const operationUrl = submitResp.headers.get('Operation-Location');
+    if (!operationUrl) throw new Error('Azure did not return Operation-Location header.');
+
+    let azureResult = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const pollResp = await fetch(operationUrl, { headers: { 'Ocp-Apim-Subscription-Key': azureKey } });
+      const pollData = await pollResp.json();
+      if (pollData.status === 'succeeded') { azureResult = pollData; break; }
+      if (pollData.status === 'failed') throw new Error('Azure OCR failed: ' + JSON.stringify(pollData.error));
+    }
+    if (!azureResult) throw new Error('Azure OCR timed out after 60 seconds.');
 
     clearInterval(progressTimer);
     const bar = document.getElementById('ai-progress-bar');
     if (bar) bar.style.width = '95%';
 
-    const data = await response.json();
-    const rawText = (data.content || []).map(b => b.text || '').join('');
-    const clean = rawText.replace(/```json|```/g,'').trim();
+    // Step 3: Map Azure fields → extracted object
+    const docFields = ((azureResult.analyzeResult || {}).documents || [{}])[0].fields || {};
+    function azureVal(f) { return f ? (f.valueString || f.content || null) : null; }
+    function azureNum(f) { return f ? (f.valueCurrency ? String(f.valueCurrency.amount) : (f.valueNumber ? String(f.valueNumber) : (f.content || null))) : null; }
+    function azureDate(f) { return f ? (f.valueDate || f.content || null) : null; }
 
-    let extracted;
-    try { extracted = JSON.parse(clean); }
-    catch(e) { throw new Error('Could not parse AI response. Raw: ' + rawText.substring(0,300)); }
+    const vendorGSTINRaw = azureVal(docFields.VendorTaxId) || azureVal(docFields.CustomerTaxId);
+    const customerGSTINRaw = azureVal(docFields.CustomerId) || azureVal(docFields.CustomerTaxId);
+
+    // Try to detect IGST vs CGST/SGST from raw content
+    const rawContent = ((azureResult.analyzeResult || {}).content || '').toUpperCase();
+    const hasIGST    = rawContent.includes('IGST');
+    const hasCGST    = rawContent.includes('CGST');
+
+    // Extract IRN (64-char hex) and HSN from raw text
+    const irnMatch = rawContent.match(/[0-9A-F]{64}/);
+    const hsnMatch = rawContent.match(/HSN[^\d]*(\d{4,8})/);
+    // Extract GSTIN pattern (15-char alphanumeric)
+    const gstinMatches = rawContent.match(/\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/g) || [];
+
+    const extracted = {
+      invoiceNumber:    azureVal(docFields.InvoiceId),
+      invoiceDate:      azureDate(docFields.InvoiceDate),
+      irnNumber:        irnMatch ? irnMatch[0] : null,
+      vendorGSTIN:      gstinMatches[0] || null,
+      vendorPAN:        gstinMatches[0] ? gstinMatches[0].substring(2, 12) : null,
+      vendorName:       azureVal(docFields.VendorName),
+      vendorState:      null,
+      customerGSTIN:    gstinMatches[1] || null,
+      customerName:     azureVal(docFields.CustomerName),
+      placeOfSupply:    null,
+      hsnCode:          hsnMatch ? hsnMatch[1] : null,
+      taxableValue:     azureNum(docFields.SubTotal),
+      igstRate:         null,
+      igstAmount:       null,
+      cgstRate:         null,
+      cgstAmount:       null,
+      sgstRate:         null,
+      sgstAmount:       null,
+      grandTotal:       azureNum(docFields.InvoiceTotal),
+      rcm:              rawContent.includes('REVERSE CHARGE') ? 'Y' : 'N',
+      taxType:          hasIGST ? 'IGST' : (hasCGST ? 'CGST_SGST' : null),
+      serviceDescription: azureVal((((docFields.Items || {}).valueArray || [])[0] || {}).valueObject && docFields.Items.valueArray[0].valueObject.Description),
+      amountInWords:    null
+    };
 
     // Fill form fields
     const filled = [];
